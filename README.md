@@ -136,6 +136,7 @@ pwrep Azure IDs password expiry report utility v1.0.0
     -id TenantId ClientId Secret    Set up ID for automated login
     -tx                             Delete current configured login values and token
     -v                              Print this usage page```
+```
 
 Instead of documenting individual examples of all of the above switches, it is best for you to play around with the utility to see the different listing functionality that it offers.
 
