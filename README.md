@@ -5,6 +5,7 @@
 For a quick example, to list the secret expiry dates of all applications in the tenant: 
 
 ```
+$ pwrep -ap
 API call 1: 0 objects
 PASSWORD EXPIRY REPORT: Apps
 DISPLAY_NAME                             APP_ID                                 SECRET_ID                              SECRET_NAME      EXPIRY_DATE_TIME
