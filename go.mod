@@ -3,7 +3,7 @@ module pwrep
 go 1.21.5
 
 require (
-	github.com/git719/maz v1.6.0
+	github.com/git719/maz v1.7.0
 	github.com/git719/utl v1.3.0
 )
 

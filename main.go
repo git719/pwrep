@@ -8,11 +8,12 @@ import (
 	"github.com/git719/utl"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const (
 	prgname = "pwrep"
-	prgver  = "1.0.0"
+	prgver  = "1.1.0"
 )
 
 func printUsage() {
@@ -57,6 +58,102 @@ func setupVariables(z *maz.Bundle) maz.Bundle {
 	return *z
 }
 
+func PrintSecretsExpirations(t, days string, z maz.Bundle) {
+	var list []interface{} = nil
+	var format = "text"
+	switch t {
+	case "ap":
+		objList := maz.GetMatchingApps("", true, z) // true = force call to Azure to get latest
+		for _, i := range objList {
+			x := i.(map[string]interface{}) // Assert as JSON object
+			x["oType"] = "App"              // Extend object with mazType as an ADDITIONAL field
+			list = append(list, x)
+		}
+	case "sp":
+		objList := maz.GetMatchingSps("", true, z)
+		for _, i := range objList {
+			x := i.(map[string]interface{})
+			x["oType"] = "SP"
+			list = append(list, x)
+		}
+	case "csv":
+		objList := maz.GetMatchingApps("", true, z)
+		for _, i := range objList {
+			x := i.(map[string]interface{})
+			x["oType"] = "App"
+			list = append(list, x)
+		}
+		objList = maz.GetMatchingSps("", true, z)
+		for _, i := range objList {
+			x := i.(map[string]interface{})
+			x["oType"] = "SP"
+			list = append(list, x)
+		}
+		format = "csv"
+	}
+
+	if format == "csv" {
+		fmt.Printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", "OBJ", "DISPLAY_NAME", "APP_ID", "SECRET_ID", "EXPIRY_DATE_TIME")
+	} else {
+		fmt.Printf("%-6s %-40s %-38s %-38s %s\n", "OBJ", "DISPLAY_NAME", "APP_ID", "SECRET_ID", "EXPIRY_DATE_TIME")
+	}
+
+	for _, i := range list {
+		x := i.(map[string]interface{}) // Assert as JSON object
+		if x["passwordCredentials"] != nil {
+			secretsList := x["passwordCredentials"].([]interface{})
+			if len(secretsList) > 0 {
+				oType := utl.Str(x["oType"])
+				displayName := utl.Str(x["displayName"])
+				appId := utl.Str(x["appId"])
+				PrintExpiringSecrets(oType, displayName, appId, secretsList, days, format)
+			}
+		}
+	}
+}
+
+func PrintExpiringSecrets(oType, displayName, appId string, secretsList []interface{}, days, format string) {
+	// Print expiring secrets within 'days'; if days == -1 print regular expiry date
+	if len(secretsList) < 1 {
+		return
+	}
+	daysInt, err := utl.StringToInt64(days)
+	if err != nil {
+		utl.Die("Error converting 'days' to valid integer number.\n")
+	}
+	for _, i := range secretsList {
+		pw := i.(map[string]interface{}) // Assert as JSON object
+		secretId := utl.Str(pw["keyId"])
+		expiry := utl.Str(pw["endDateTime"])
+
+		// Convert expiry date to string and int64 epoch formats
+		expiryStr, err := utl.ConvertDateFormat(expiry, time.RFC3339Nano, "2006-01-02 15:04")
+		if err != nil {
+			utl.Die(utl.Trace() + err.Error() + "\n")
+		}
+		expiryInt, err := utl.DateStringToEpocInt64(expiry, time.RFC3339Nano)
+		if err != nil {
+			utl.Die(utl.Trace() + err.Error() + "\n")
+		}
+
+		now := time.Now().Unix()
+		daysDiff := (expiryInt - now) / 86400
+
+		cExpiryStr := expiryStr
+		if daysDiff <= 0 {
+			cExpiryStr = utl.Red(expiryStr) // If it's expired print in red
+		}
+
+		if daysInt == -1 || daysDiff <= daysInt {
+			if format == "csv" {
+				fmt.Printf("\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", oType, displayName, appId, secretId, expiryStr)
+			} else {
+				fmt.Printf("%-6s %-40s %-38s %-38s %s\n", oType, displayName, appId, secretId, cExpiryStr)
+			}
+		}
+	}
+}
+
 func main() {
 	numberOfArguments := len(os.Args[1:]) // Not including the program itself
 	if numberOfArguments < 1 || numberOfArguments > 4 {
@@ -82,11 +179,11 @@ func main() {
 		z = maz.SetupApiTokens(&z) // The remaining 1-arg requests do required API tokens to be set up
 		switch arg1 {
 		case "-ap":
-			maz.PrintExpiringSecretsReport("ap", "-1", z)
+			PrintSecretsExpirations("ap", "-1", z)
 		case "-sp":
-			maz.PrintExpiringSecretsReport("sp", "-1", z)
+			PrintSecretsExpirations("sp", "-1", z)
 		case "-csv":
-			maz.PrintExpiringSecretsReport("csv", "-1", z)
+			PrintSecretsExpirations("csv", "-1", z)
 		default:
 			printUsage()
 		}
@@ -96,11 +193,11 @@ func main() {
 		z = maz.SetupApiTokens(&z) // The remaining 1-arg requests do required API tokens to be set up
 		switch arg1 {
 		case "-ap":
-			maz.PrintExpiringSecretsReport("ap", arg2, z)
+			PrintSecretsExpirations("ap", arg2, z)
 		case "-sp":
-			maz.PrintExpiringSecretsReport("sp", arg2, z)
+			PrintSecretsExpirations("sp", arg2, z)
 		case "-csv":
-			maz.PrintExpiringSecretsReport("csv", arg2, z)
+			PrintSecretsExpirations("csv", arg2, z)
 		default:
 			printUsage()
 		}
