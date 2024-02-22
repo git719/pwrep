@@ -13,11 +13,11 @@ import (
 
 const (
 	prgname = "pwrep"
-	prgver  = "1.1.0"
+	prgver  = "1.1.1"
 )
 
 func printUsage() {
-	fmt.Printf(prgname + " Azure IDs password expiry report utility v" + prgver + "\n" +
+	fmt.Printf(prgname + " Azure IDs password expiry reporter v" + prgver + "\n" +
 		"    -ap  [DAYS]                     Password expiry report for all apps in tenant; optional within DAYS\n" +
 		"    -sp  [DAYS]                     Password expiry report for all SPs in tenant; optional within DAYS\n" +
 		"    -csv [DAYS]                     Password expiry report for all apps and SPs in CSV format; optional within DAYS\n" +

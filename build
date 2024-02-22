@@ -1,6 +1,4 @@
 #!/bin/bash
-# build
-
 set -euo pipefail  # Fail on any error
 export Gre='\e[1;32m' Red='\e[1;31m' Rst='\e[0m'
 Prg=`head -1 go.mod | awk -F'/' '{print $NF}' | awk '{print $NF}'`
@@ -11,10 +9,16 @@ case "$OSTYPE" in
     * )            printf "==> Unknown \"$OSTYPE\" (Options are Linux, macOS, or Windows with GitBASH)\n" && exit 1 ;;
 esac
 
-go fmt
 go mod tidy
+go fmt
 go test ./...
 go build -ldflags "-s -w" -o $BIN
+
+# For cross compiling
+# GOOS=linux GOARCH=amd64|arm64   go build -ldflags "-s -w" -o ${Prg}
+# GOOS=windows GOARCH=amd64|arm64 go build -ldflags "-s -w" -o ${Prg}.exe
+# GOOS=darwin GOARCH=arm64        go build -ldflags "-s -w" -o ${Prg}
+
 printf "\n"
 ls -l $GOPATH/bin/$Prg | grep $Prg
 
